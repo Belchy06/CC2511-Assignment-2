@@ -15,9 +15,12 @@ elseif strcmp(command, 'save')
     exportData();
 elseif strcmp(command, 'clear')
     clearGraphs();
+elseif strcmp(command, 'init')
+    initializePlots(hObject);
 else
     return;
 end
+
 
     function initdataStruct()
         % Initialize data struct
@@ -44,7 +47,7 @@ end
             %%%%%
             % this period should be based on feed rate
             %%%%
-            backgroundTimer = timer('Period', 0.5, ...
+            backgroundTimer = timer('Period', 0.1, ...
                 'ExecutionMode', 'fixedSpacing');
             backgroundTimer.TimerFcn = {@sendData, hObject};
             backgroundTimer.StopFcn = {@tmrstop};
@@ -102,10 +105,10 @@ end
                         elseif strcmp(splitLine{i}, 'G01') || strcmp(splitLine{i}, 'G1')
                             %disp('Linear positioning');
                             current_mode = Linear_interpolation;
-                        elseif strcmp(splitLine{i}, 'G02')
+                        elseif strcmp(splitLine{i}, 'G02') || strcmp(splitLine{i}, 'G2')
                             %disp('Circular positioning, clockwise');
                             current_mode = CW_interpolation;
-                        elseif strcmp(splitLine{i}, 'G03')
+                        elseif strcmp(splitLine{i}, 'G03') || strcmp(splitLine{i}, 'G3')
                             %disp('Circular positioning, counterclockwise');
                             current_mode = CCW_interpolation;
                         else
@@ -275,9 +278,8 @@ end
         handles = guidata(hObject);
         axes(handles.axes1);
         cla reset;
-        view(-40,40);
         guidata(hObject, handles);
-        
+        initializePlots(hObject);
     end
 
 
