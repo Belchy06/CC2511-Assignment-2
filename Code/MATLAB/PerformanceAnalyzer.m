@@ -22,7 +22,7 @@ function varargout = PerformanceAnalyzer(varargin)
 
 % Edit the above text to modify the response to help PerformanceAnalyzer
 
-% Last Modified by GUIDE v2.5 21-Sep-2020 08:42:46
+% Last Modified by GUIDE v2.5 27-Oct-2020 12:17:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -51,11 +51,15 @@ function PerformanceAnalyzer_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to PerformanceAnalyzer (see VARARGIN)
-controlCNC('init',hObject)
 
 % Choose default command line output for PerformanceAnalyzer
 handles.output = hObject;
-
+handles.pos.x = 0;
+handles.pos.y = 0;
+handles.pos.z = 0;
+handles.leadPitch = 0;
+handles.stepsPerRev = 0;
+handles.steps = 15;
 % Update handles structure
 guidata(hObject, handles);
 global serialRefresh
@@ -167,7 +171,7 @@ function dataSelector_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns dataSelector contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from dataSelector
-updateGui(handles, handles.dataSelector.Value);
+updateGui(hObject, handles, handles.dataSelector.Value);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -182,15 +186,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function updateGui(handles, value)
+function updateGui(hObject, handles, value)
     switch value
         case 1
             handles.manualUI.Visible = 'on';
             handles.fileUI.Visible = 'off';
+            handles.calibrationUI.Visible = 'off';
         case 2
             handles.manualUI.Visible = 'off';
-            handles.fileUI.Visible = 'on';       
+            handles.fileUI.Visible = 'on'; 
+            handles.calibrationUI.Visible = 'off';
+        case 3
+            handles.manualUI.Visible = 'off';
+            handles.fileUI.Visible = 'off';
+            handles.calibrationUI.Visible = 'on';
     end
+    guidata(hObject, handles);
     
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
     global serialRefresh
@@ -218,3 +229,134 @@ function stopBtn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 controlCNC('stop',hObject)
+
+
+% --- Executes on button press in manualBtn.
+function manualBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to manualBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+controlCNC('manual',hObject)
+
+
+% --- Executes on button press in xPlus.
+function xPlus_Callback(hObject, eventdata, handles)
+% hObject    handle to xPlus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pos.x = handles.pos.x + handles.steps;
+guidata(hObject, handles);
+controlCNC('calibrate',hObject)
+
+
+% --- Executes on button press in xMinus.
+function xMinus_Callback(hObject, eventdata, handles)
+% hObject    handle to xMinus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pos.x = handles.pos.x - handles.steps;
+guidata(hObject, handles);
+controlCNC('calibrate',hObject)
+
+% --- Executes on button press in yPlus.
+function yPlus_Callback(hObject, eventdata, handles)
+% hObject    handle to yPlus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pos.y = handles.pos.y + handles.steps;
+guidata(hObject, handles);
+controlCNC('calibrate',hObject)
+
+% --- Executes on button press in yMinus.
+function yMinus_Callback(hObject, eventdata, handles)
+% hObject    handle to yMinus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pos.y = handles.pos.y - handles.steps;
+guidata(hObject, handles);
+controlCNC('calibrate',hObject)
+
+% --- Executes on button press in zPlus.
+function zPlus_Callback(hObject, eventdata, handles)
+% hObject    handle to zPlus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pos.z = handles.pos.z + handles.steps;
+guidata(hObject, handles);
+controlCNC('calibrate',hObject)
+
+% --- Executes on button press in zMinus.
+function zMinus_Callback(hObject, eventdata, handles)
+% hObject    handle to zMinus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pos.z = handles.pos.z - handles.steps;
+guidata(hObject, handles);
+controlCNC('calibrate',hObject)
+
+% --- Executes on button press in setHome.
+function setHome_Callback(hObject, eventdata, handles)
+% hObject    handle to setHome (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+controlCNC('home',hObject)
+handles.pos.x = 0;
+handles.pos.y = 0;
+handles.pos.z = 0;
+guidata(hObject, handles);
+
+
+
+function pitchTxt_Callback(hObject, eventdata, handles)
+% hObject    handle to pitchTxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of pitchTxt as text
+%        str2double(get(hObject,'String')) returns contents of pitchTxt as a double
+handles.leadPitch = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+recalcSteps(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function pitchTxt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pitchTxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function stepsTxt_Callback(hObject, eventdata, handles)
+% hObject    handle to stepsTxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of stepsTxt as text
+%        str2double(get(hObject,'String')) returns contents of stepsTxt as a double
+handles.stepsPerRev = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+recalcSteps(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function stepsTxt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to stepsTxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function recalcSteps(hObject, handles)
+handles.steps = handles.stepsPerRev / handles.leadPitch;
+guidata(hObject, handles);

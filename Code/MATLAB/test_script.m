@@ -37,10 +37,10 @@ CW_interpolation = 2;
 CCW_interpolation = 3;
 current_mode = NaN;
 % Initialize variables
-current_pos = [0,0,0];
+current_pos = [0,0,0,0];
 toolPath = [];
 arc_offsets = [0,0,0];
-interp_pos = [];
+interp_pos = [0, 0,0,0];
 while ~feof(raw_gcode_file)
     tline = fgetl(raw_gcode_file);
     if(~isempty(tline))
@@ -81,7 +81,7 @@ while ~feof(raw_gcode_file)
             angle_res = angle_resolution * feedrate;
             % Check the current mode and calculate the next points along the
             % path: linear modes
-            if current_mode == Linear_interpolation || current_mode == Rapid_positioning
+            if current_mode == Rapid_positioning
                 if length(toolPath > 0)
                     interp_pos = [linspace(toolPath(end,1),current_pos(1),100)',linspace(toolPath(end,2),current_pos(2),100)',linspace(toolPath(end,3),current_pos(3),100)'];
                     dist = norm((current_pos - toolPath(end,:)));
@@ -89,6 +89,20 @@ while ~feof(raw_gcode_file)
                         dire = (current_pos - toolPath(end,:))/dist;
                         interp_pos = toolPath(end,:) + dire.*(0:dist_res:dist)';
                         interp_pos = [interp_pos;current_pos];
+                        interp_pos(:,end) = 255;
+                    end
+                else
+                    interp_pos = current_pos;
+                end
+            elseif current_mode == Linear_interpolation
+                if length(toolPath > 0)
+                    interp_pos = [linspace(toolPath(end,1),current_pos(1),100)',linspace(toolPath(end,2),current_pos(2),100)',linspace(toolPath(end,3),current_pos(3),100)'];
+                    dist = norm((current_pos - toolPath(end,:)));
+                    if dist > 0
+                        dire = (current_pos - toolPath(end,:))/dist;
+                        interp_pos = toolPath(end,:) + dire.*(0:dist_res:dist)';
+                        interp_pos = [interp_pos;current_pos];
+                        interp_pos(:,end) = 0;
                     end
                 else
                     interp_pos = current_pos;
@@ -125,6 +139,7 @@ while ~feof(raw_gcode_file)
                 else
                     interp_pos = [center_pos(1:2) + [cosd(angle_1:-angle_res:angle_2)',sind(angle_1:-angle_res:angle_2)']*r, linspace(center_pos(3),current_pos(3),length(angle_1:-angle_res:angle_2))'];
                     interp_pos = [interp_pos;current_pos];
+                    interp_pos(:,end) = 0;
                 end
                 
             elseif current_mode == CCW_interpolation
@@ -163,10 +178,11 @@ while ~feof(raw_gcode_file)
                 end
                 
                 interp_pos = [interp_pos;current_pos];
+                interp_pos(:,end) = 0;
             end
             toolPath = [toolPath;interp_pos];
-            arc_offsets = [0, 0, 0]
-            disp(interp_pos)
+            arc_offsets = [0, 0, 0];
+            disp(interp_pos);
         end
     end
 end
@@ -177,6 +193,7 @@ set(gca, 'XLim', [min(toolPath(:,1)) - 5,max(toolPath(:,1)) + 5], 'YLim', [min(t
 view(-40,40);
 for k = 1:length(toolPath)
     addpoints(curve, toolPath(k,1), toolPath(k,2), toolPath(k,3));
+    disp(round(toolPath(k,:) * 25));
     drawnow
     pause(0.05);
 end
