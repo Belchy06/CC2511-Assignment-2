@@ -9,7 +9,7 @@ Group 9 - William Belcher, [Jai Wilson](https://github.com/Jai-Wilson), [Mischa 
 * Terminal Control - Open the program PUTTY and connect to the freedom board via the corresponding COM port with baud rate 9600. Follow the terminals instructions to move the engraver
 
 
-## Improvments
+## Improvements
 For those cheeky kiddos next year, here are some improvements that can be made:
 * Add method for changing the stepping mode. The GPIOs are connected, just uncontrollable at the moment. Add a new command, eg. "Mx" with x being a value from 0 to 5 depending on the stepping mode required. Do:
 ```
