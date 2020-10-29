@@ -1,5 +1,6 @@
 # CC2511 Assignment 2 2020
 CC2511 - Embedded Systems Design - Control System for a Computer Numerical Controlled (CNC) Mill
+
 Group 9 - William Belcher, [Jai Wilson](https://github.com/Jai-Wilson), [Mischa Burgess](https://github.com/MischaBurgess)
 
 
