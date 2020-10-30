@@ -171,7 +171,8 @@ void draw_GUI() {
 	Term1_SendStr("> ");
 
 	Term1_MoveTo(3, 17);
-	Term1_SendStr("Error Code:                                                                       ");
+	Term1_SendStr(
+			"Error Code:                                                                       ");
 	Term1_MoveTo(3, 14);
 }
 
@@ -202,10 +203,10 @@ int main(void)
 	int8 sPWM;
 
 	//set limit variables for error checking
-	int32 xLim;
-	int32 yLim;
-	int32 zLim;
-	int16 sLim;
+	int16 xLim = 1000;
+	int16 yLim = 1000;
+	int16 zLim = 500;
+	int8 sLim = 255;
 
 	// These variables store the 'Dif'ference between the current amount of steps taken
 	// and the amount of steps that should be take as received from the serial interface
@@ -217,23 +218,18 @@ int main(void)
 
 	// Initialising position structs. One for current position and the other for our
 	// goal position as received from the serial interface
-	struct position currentPos;
-	currentPos.x = 0;
-	currentPos.y = 0;
-	currentPos.z = 0;
+	struct position currentPos = { 0, 0, 0 };
 
 	// goalPos is kind of redundant as all the calculations rely on the difference but I keep it for souvenir sake
 	// forever in my heart goalPos
-	struct position goalPos;
-	goalPos.x = 0;
-	goalPos.y = 0;
-	goalPos.z = 0;
+	struct position goalPos = { 0, 0, 0 };
 
 	//Variables foe error checking
 	const char *acceptable_inputs = "XYZSH0123456789-";
 	int error_code = 0;
-	char errorone[] ="Error 1-Command entered is an invalid command";
-	char errortwo[] ="Error 2-Value entered is out of range for desired command";
+	char errorone[] = "Error 1-Command entered is an invalid command";
+	char errortwo[] =
+			"Error 2-Value entered is out of range for desired command";
 
 	/*** Processor Expert internal initialization. DON'T REMOVE THIS CODE!!! ***/
 	PE_low_level_init();
@@ -248,7 +244,9 @@ int main(void)
 	mode1_ClrVal();
 	mode2_ClrVal();
 
-	// Redundant terminal block code YUCK. GUI ALL THA WAY BABY!!!
+	// Turn spindle off at start up
+	spindle_SetRatio8(255);
+
 	/* Write your code here */
 	/* For example: for(;;) { } */
 
@@ -265,7 +263,8 @@ int main(void)
 
 			//clear any previous error codes when a new input is entered and move cursor back to desired position
 			Term1_MoveTo(3, 17);
-			Term1_SendStr("Error Code:                                                                                    ");
+			Term1_SendStr(
+					"Error Code:                                                                                    ");
 			Term1_MoveTo(3, 14);
 			error_code = 0;
 
@@ -290,23 +289,15 @@ int main(void)
 
 				// If there is an X. present
 				if (sscanf((char *) element, "X%hu", &xPos) > 0) {
-
 					// Calculate the difference between where engraver currently is and where serial command says it should be
 					xDif = currentPos.x - xPos;
-
-					if (abs(xDif) > 1000) {
+					// If the x dif is above the limit we can move, send an error code
+					if (abs(xDif) > xLim) {
 						error_code = 2;
 						break;
 					}
-
-
-					// If the difference is less than 0, move forward (our target position is further ahead than out current position)
-					if (xDif > 0) {
-						xDir_ClrVal();
-					} else {
-						// else move backward
-						xDir_PutVal(1);
-					}
+					// If the difference is less than 0, move forward (our target position is further ahead than out current position) else move backward
+					xDir_PutVal(((xDif > 0) ? 0 : 1));
 					// Update the goal position struct
 					goalPos.x = xPos;
 					Term1_MoveTo(3, 6);
@@ -317,20 +308,12 @@ int main(void)
 
 				// Same process for Y
 				if (sscanf((char *) element, "Y%hu", &yPos) > 0) {
-
 					yDif = currentPos.y - yPos;
-
-					if (abs(yDif) > 1000) {
+					if (abs(yDif) > yLim) {
 						error_code = 2;
 						break;
 					}
-
-
-					if (yDif > 0) {
-						yDir_ClrVal();
-					} else {
-						yDir_PutVal(1);
-					}
+					yDif = currentPos.y - yPos;
 					goalPos.y = yPos;
 					Term1_MoveTo(3, 7);
 					Term1_SendStr("  Y:       ");
@@ -340,19 +323,12 @@ int main(void)
 
 				// Same process for Z
 				if (sscanf((char *) element, "Z%hu", &zPos) > 0) {
-
 					zDif = currentPos.z - zPos;
-					if (abs(zDif) > 1000) {
+					if (abs(zDif) > zLim) {
 						error_code = 2;
 						break;
 					}
-
-
-					if (zDif > 0) {
-						zDir_ClrVal();
-					} else {
-						zDir_PutVal(1);
-					}
+					zDif = currentPos.z - zPos;
 					goalPos.z = zPos;
 					Term1_MoveTo(3, 8);
 					Term1_SendStr("  Z:       ");
@@ -362,15 +338,13 @@ int main(void)
 
 				// If there is an "S."
 				// The value after the spindle ranges from 0 - 255 (an 8bit integer)
-				// Therefore we can set this value staright to the spindle PWM component
-				if (sscanf((char *) element, "S%hu", &sLim) > 0) {
-
+				// Therefore we can set this value straight to the spindle PWM component
+				if (sscanf((char *) element, "S%hu", &sPWM) > 0) {
 					//check if spindle input is a valid input
-					if (sLim < 0 || sLim > 255) {
+					if (sPWM < 0 || sPWM > sLim) {
 						error_code = 2;
 						break;
 					}
-					sPWM = sLim;
 					spindle_SetRatio8(sPWM);
 					Term1_MoveTo(3, 9);
 					Term1_SendStr("  S:       ");
@@ -382,12 +356,8 @@ int main(void)
 				// NOTE: This function does not move the engraver, it merely sets the current position stored in memory to be at 0,
 				// The moving is done through normal "X. Y. Z." instructions
 				if (0 == strcmp((char *) element, "H")) {
-					currentPos.x = 0;
-					currentPos.y = 0;
-					currentPos.z = 0;
-					goalPos.x = 0;
-					goalPos.y = 0;
-					goalPos.z = 0;
+					currentPos = (struct position ) { .x = 0, .y = 0, .z = 0 };
+					goalPos = (struct position ) { .x = 0, .y = 0, .z = 0 };
 				}
 
 				// Get the next element in the instruction.
@@ -435,10 +405,7 @@ int main(void)
 				zDif = 0;
 
 				// Update the current position to reflect the fact we have moved. I LIKE TO MOVE IT MOVE IT
-				currentPos.x = goalPos.x;
-				currentPos.y = goalPos.y;
-				currentPos.z = goalPos.z;
-
+				currentPos = goalPos;
 			} else if (error_code == 1) {
 				Term1_MoveTo(15, 17);
 				Term1_SendStr(errorone);
